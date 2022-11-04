@@ -1,0 +1,19 @@
+---
+title: "Module 8 Final Project"
+output: html_document
+date: "2022-11-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages and Set Working Directory 
+
+```{r}
+setwd("~/R/Coursera/module8-final")
+
+library(ggplot2)
+library(caret)
+
+```
