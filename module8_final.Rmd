@@ -1,19 +1,109 @@
 ---
 title: "Module 8 Final Project"
 output: html_document
-date: "2022-11-04"
+date: "2023-01-20"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Load Packages and Set Working Directory 
+# Project Overview
+
+The goal of the project is to predict the manner in which people in the dataset did the exercise and chose the best model to use on the test data set. 
+
+# Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. 
+
+# Set working directory, load packages, and load data
 
 ```{r}
 setwd("~/R/Coursera/module8-final")
 
 library(ggplot2)
+library(lattice)
 library(caret)
+library(rattle)
+library(randomForest)
 
+train_set <- read.csv("pml-training.csv")
+test_set <- read.csv("pml-testing.csv")
+```
+
+# Data cleaning
+
+Since we are training the models, only the training set needs to be cleaned for now
+
+```{r}
+# Remove first few columns of data, since they aren't needed
+train_set <- train_set[, -c(1:7)]
+
+# Remove high correlation columns 
+train_set <- train_set[,colMeans(is.na(train_set)) < 0.95]
+
+# Remove near zero variances
+nzv <- nearZeroVar(train_set)
+train_set <- train_set[,-nzv]
+```
+
+Split the training data into the validation and training data sets
+
+```{r}
+new_train <- createDataPartition(train_set$classe, p = 0.8, list = FALSE)
+training <- train_set[new_train,]
+validation <- train_set[-new_train,]
+```
+
+# Create and Test the Models
+
+We'll use a couple common models to test our predictions
+
+### Decision Tree
+
+Model
+
+```{r}
+tree <- train(classe~., data = training, method = "rpart")
+fancyRpartPlot(tree$finalModel, sub = "Decision Tree")
+```
+
+Prediction
+
+```{r}
+tree_prediction <- predict(tree, validation)
+confusionMatrix(tree_prediction, factor(validation$classe))
+```
+
+### Random Forest
+
+```{r}
+control <- trainControl(method="cv", number=3, verboseIter=F)
+
+forest <- train(classe~., data = training, method = "rf", trControl = control, tuneLength = 5)
+
+forest_prediction <- predict(forest, validation)
+confusionMatrix(forest_prediction, factor(validation$classe))
+
+```
+
+Between the two, the random forest is the better model, and is what we'll use in the test sets. 
+
+# Test data predictions
+
+```{r}
+test_pred <- predict(forest, test_set)
+print(test_pred)
 ```
